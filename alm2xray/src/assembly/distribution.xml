@@ -9,6 +9,11 @@
   <fileSets>
 
     <fileSet>
+      <directory>${project.build.directory}/config</directory>
+      <outputDirectory>config</outputDirectory>
+    </fileSet>
+
+    <fileSet>
       <directory>${project.build.scriptSourceDirectory}</directory>
       <outputDirectory>bin</outputDirectory>
       <fileMode>0700</fileMode>

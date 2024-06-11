@@ -48,7 +48,7 @@ public class Config
      *
      * @return ???
      *
-     * @throws IllegalArgumentException
+     * @throws IllegalStateException
      *         ???
      */
     public String get(String key)
@@ -57,7 +57,7 @@ public class Config
         if (value == null)
         {
             String msg = String.format("Configuration parameter not found (%s).", key);
-            throw new IllegalArgumentException(msg);
+            throw new IllegalStateException(msg);
         }
         return value;
     }

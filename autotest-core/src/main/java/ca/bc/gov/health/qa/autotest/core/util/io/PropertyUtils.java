@@ -20,7 +20,7 @@ public class PropertyUtils
     /**
      * TODO (AZ) - doc
      *
-     * @param file
+     * @param filePath
      *        ???
      *
      * @return ???
@@ -28,11 +28,11 @@ public class PropertyUtils
      * @throws IOException
      *         if an I/O error occurs
      */
-    public static Properties loadProperties(Path file)
+    public static Properties loadProperties(Path filePath)
     throws IOException
     {
         Properties properties = new Properties();
-        try (InputStream inStream = new FileInputStream(file.toFile()))
+        try (InputStream inStream = new FileInputStream(filePath.toFile()))
         {
             properties.load(inStream);
         }
@@ -42,7 +42,7 @@ public class PropertyUtils
     /**
      * TODO (AZ) - doc
      *
-     * @param file
+     * @param filePath
      *        ???
      *
      * @return ???
@@ -50,11 +50,11 @@ public class PropertyUtils
      * @throws IOException
      *         if an I/O error occurs
      */
-    public static Map<String,String> loadPropertyMap(Path file)
+    public static Map<String,String> loadPropertyMap(Path filePath)
     throws IOException
     {
         Map<String,String> propertyMap = new HashMap<>();
-        Properties properties = loadProperties(file);
+        Properties properties = loadProperties(filePath);
         for (Entry<Object,Object> entry : properties.entrySet())
         {
             propertyMap.put((String) entry.getKey(), (String) entry.getValue());

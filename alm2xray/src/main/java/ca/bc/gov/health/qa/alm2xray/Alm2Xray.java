@@ -6,6 +6,8 @@ import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
@@ -14,105 +16,81 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
+import ca.bc.gov.health.qa.autotest.core.util.config.Config;
 import ca.bc.gov.health.qa.autotest.core.util.io.ProjectInfo;
-
+import ca.bc.gov.health.qa.autotest.core.util.io.PropertyUtils;
+import ca.bc.gov.health.qa.autotest.core.util.security.ArraySupport;
+import ca.bc.gov.health.qa.autotest.core.util.security.CredentialUtils;
+import ca.bc.gov.health.qa.autotest.core.util.security.UserCredentials;
 
 /**
  * TODO (AZ) - doc
  */
 public class Alm2Xray
 {
-    private static enum CommandMode
-    {
-        CONVERT,
-        HELP,
-        VERSION;
-    };
-
     /**
      * TODO (AZ) - doc
      *
      * @param args
-     *        ???
+     *        command-line arguments
+     *
+     * @throws IllegalStateException
+     *         ???
+     *
+     * @throws IOException
+     *         if an I/O error occurs
      */
     public static void main(String[] args)
+    throws IOException
     {
-        Options options = new Options()
-                .addOption(Option
-                        .builder("f")
-                        .longOpt("force")
-                        .desc("force overwrite existing file")
-                        .build())
-                .addOption(Option
-                        .builder("h")
-                        .longOpt("help")
-                        .desc("shows help information")
-                        .build())
-                .addOption(Option
-                        .builder("i")
-                        .longOpt("input")
-                        .hasArg()
-                        .argName("file")
-                        .desc("input file")
-                        .build())
-                .addOption(Option
-                        .builder("o")
-                        .longOpt("output")
-                        .hasArg()
-                        .argName("file")
-                        .desc("output file")
-                        .build())
-                .addOption(Option
-                        .builder("v")
-                        .longOpt("version")
-                        .desc("shows version information")
-                        .build());
-        String artifactId = Alm2XrayConverter.getProjectInfo().getArtifactId();
+        Options     options = createCommandLineOptions();
+        CommandLine cli;
         try
         {
-            CommandLine cli = new DefaultParser().parse(options, args);
+            cli = new DefaultParser().parse(options, args);
             if (!cli.getArgList().isEmpty())
             {
                 throw new IllegalArgumentException("Too many arguments.");
             }
-            switch(getCommandMode(cli))
+            verifyMutuallyExclusiveOptions(cli, List.of("a", "c", "h", "q", "v"));
+            verifyOptionValueCount(cli);
+            if (cli.hasOption("a"))
             {
-                case CONVERT:
-                {
-                    Path    inputPath      = getPath(cli, "i", "input file");
-                    Path    outputPath     = getPath(cli, "o", "output file");
-                    boolean forceOverwrite = cli.hasOption("f");
-                    convert(inputPath, outputPath, forceOverwrite);
-                    break;
-                }
-
-                case HELP:
-                {
-                    printHelpInfo(options, false);
-                    break;
-                }
-
-                case VERSION:
-                {
-                    printVersionInfo();
-                    break;
-                }
+                String userInfoString = cli.getOptionValue("u");
+                String projectName    = getOptionValue("p", cli, options);
+                verifyAlmProjectAccess(projectName, userInfoString);
+            }
+            else if (cli.hasOption("c"))
+            {
+                Path    inputPath      = getOptionPath("i", cli, options);
+                Path    outputPath     = getOptionPath("o", cli, options);
+                boolean forceOverwrite = cli.hasOption("f");
+                convert(inputPath, outputPath, forceOverwrite);
+            }
+            else if (cli.hasOption("h"))
+            {
+                printHelpInfo(options, false);
+            }
+            else if (cli.hasOption("q"))
+            {
+                String userInfoString = cli.getOptionValue("u");
+                String projectName    = getOptionValue("p", cli, options);
+                queryAlm(projectName, userInfoString);
+            }
+            else if (cli.hasOption("v"))
+            {
+                printVersionInfo();
+            }
+            else
+            {
+                throw new IllegalArgumentException("Missing required argument(s).");
             }
         }
         catch (IllegalArgumentException | ParseException e)
         {
-            exitWithError(e.getMessage(), options);
-        }
-        catch (IOException e)
-        {
-            String msg = "I/O ERROR";
-            System.err.println(artifactId + ": " + msg);
-            throw new IllegalStateException(msg, e);
-        }
-        catch (Throwable t)
-        {
-            System.err.println(artifactId + ": ERROR");
-            throw t;
+            String msg = e.getMessage();
+            exitWithError(msg, options);
+            throw new IllegalStateException(msg);
         }
     }
 
@@ -134,6 +112,70 @@ public class Alm2Xray
         System.out.println("Done.");
     }
 
+    private static Options createCommandLineOptions()
+    {
+        Options options = new Options()
+                .addOption(Option
+                        .builder("a")
+                        .longOpt("access")
+                        .desc("verifies ALM project access")
+                        .build())
+                .addOption(Option
+                        .builder("c")
+                        .longOpt("convert")
+                        .desc("Converts ALM test cases to Xray")
+                        .build())
+                .addOption(Option
+                        .builder("f")
+                        .longOpt("force")
+                        .desc("overwrites existing output file")
+                        .build())
+                .addOption(Option
+                        .builder("h")
+                        .longOpt("help")
+                        .desc("shows help information")
+                        .build())
+                .addOption(Option
+                        .builder("i")
+                        .longOpt("input")
+                        .hasArg()
+                        .argName("file")
+                        .desc("input file")
+                        .build())
+                .addOption(Option
+                        .builder("o")
+                        .longOpt("output")
+                        .hasArg()
+                        .argName("file")
+                        .desc("output file")
+                        .build())
+                .addOption(Option
+                        .builder("p")
+                        .longOpt("project")
+                        .hasArg()
+                        .argName("project")
+                        .desc("ALM project name")
+                        .build())
+                .addOption(Option
+                        .builder("q")
+                        .longOpt("query")
+                        .desc("queries ALM")
+                        .build())
+                .addOption(Option
+                        .builder("u")
+                        .longOpt("user")
+                        .hasArg()
+                        .argName("user")
+                        .desc("ALM user info (<username>[:<password>])")
+                        .build())
+                .addOption(Option
+                        .builder("v")
+                        .longOpt("version")
+                        .desc("shows version information")
+                        .build());
+        return options;
+    }
+
     private static void exitWithError(String errorMessage, Options options)
     {
         String artifactId = Alm2XrayConverter.getProjectInfo().getArtifactId();
@@ -143,65 +185,61 @@ public class Alm2Xray
         System.exit(1);
     }
 
-    private static CommandMode getCommandMode(CommandLine cli)
+    private static String getOptionDescription(String opt, Options options)
     {
-        CommandMode mode = null;
-        int count = 0;
-        if (cli.hasOption("i") || cli.hasOption("o"))
+        String description;
+        Option option = options.getOption(opt);
+        if (option != null)
         {
-            mode = CommandMode.CONVERT;
-            count++;
+            description = option.getDescription();
         }
-        if (cli.hasOption("h"))
+        else
         {
-            mode = CommandMode.HELP;
-            count++;
+            description = opt;
         }
-        if (cli.hasOption("v"))
-        {
-            mode = CommandMode.VERSION;
-            count++;
-        }
-        if (mode == null)
-        {
-            throw new IllegalArgumentException("Missing required argument(s).");
-        }
-        if (count > 1)
-        {
-            throw new IllegalArgumentException("Too many options specified.");
-        }
-        return mode;
+        return description;
     }
 
-    private static String getOptionValue(CommandLine cli, String option, String description)
+    private static Path getOptionPath(String opt, CommandLine cli, Options options)
     {
-        String value = cli.getOptionValue(option);
+        Path path;
+        try
+        {
+            path = Path.of(getOptionValue(opt, cli, options));
+        }
+        catch (InvalidPathException e)
+        {
+            String msg = String.format(
+                    "Invalid %s path (%s).", getOptionDescription(opt, options), e.getMessage());
+            throw new IllegalArgumentException(msg, e);
+        }
+        return path;
+    }
+
+    private static String getOptionValue(String opt, CommandLine cli, Options options)
+    {
+        String value = cli.getOptionValue(opt);
         if (value == null)
         {
-            String msg = String.format("Missing %s.", description);
-            throw new IllegalArgumentException(msg);
-        }
-        if (cli.getOptionValues(option).length > 1)
-        {
-            String msg = String.format("Too many arguments for %s.", description);
+            String msg = String.format("Missing %s.", getOptionDescription(opt, options));
             throw new IllegalArgumentException(msg);
         }
         return value;
     }
 
-    private static Path getPath(CommandLine cli, String option, String description)
+    private static UserCredentials getUserCredentials(String userInfoString)
     {
-        Path path;
+        UserCredentials credentials;
+        char[] userInfo = ArraySupport.getCharArray(userInfoString);
         try
         {
-            path = Path.of(getOptionValue(cli, option, description));
+            credentials = CredentialUtils.getUserCredentials(userInfo, "ALM");
         }
-        catch (InvalidPathException e)
+        finally
         {
-            String msg = String.format("Invalid %s path (%s).", description, e.getMessage());
-            throw new IllegalArgumentException(msg, e);
+            ArraySupport.clear(userInfo);
         }
-        return path;
+        return credentials;
     }
 
     private static void printHelpInfo(Options options, boolean errorMode)
@@ -214,36 +252,52 @@ public class Alm2Xray
                 .get();
         formatter.setWidth(80);
         formatter.setSyntaxPrefix("Usage: ");
+        String indent  = " ".repeat(formatter.getSyntaxPrefix().length());
         String newLine = formatter.getNewLine();
         String artifactId = Alm2XrayConverter.getProjectInfo().getArtifactId();
         String syntax = new StringBuilder()
                 .append(artifactId)
-                .append(" [-f] -i <file> -o <file>")
+                .append(" -a -p <project> [-u <user>]")
                 .append(newLine)
-                .append("       ")
+                .append(indent)
+                .append(artifactId)
+                .append(" -c -i <file> -o <file> [-f]")
+                .append(newLine)
+                .append(indent)
+                .append(artifactId)
+                .append(" -q -p <project> [-u <user>]")
+                .append(newLine)
+                .append(indent)
                 .append(artifactId)
                 .append(" -h | -v")
                 .toString();
-        String header;
+        String header = new StringBuilder()
+                .append(newLine)
+                .append("Options:")
+                .toString();
         String footer;
         if (!errorMode)
         {
-            header = new StringBuilder()
-                    .append(newLine)
-                    .append("Options:")
-                    .toString();
+            indent = "  ";
             footer = new StringBuilder()
                     .append(newLine)
-                    .append("Example:")
+                    .append("Examples:")
                     .append(newLine)
-                    .append("  ")
+                    .append(indent)
                     .append(artifactId)
-                    .append(" -i input.html -o output.csv")
+                    .append(" -a -p PLR_CGI_Internal -u jdoe")
+                    .append(newLine)
+                    .append(indent)
+                    .append(artifactId)
+                    .append(" -c -i input.json -o output.csv")
+                    .append(newLine)
+                    .append(indent)
+                    .append(artifactId)
+                    .append(" -q -p PLR_CGI_Internal -u jdoe")
                     .toString();
         }
         else
         {
-            header = newLine;
             footer = null;
         }
         formatter.printHelp(syntax, header, options, footer);
@@ -253,5 +307,84 @@ public class Alm2Xray
     {
         ProjectInfo projectInfo = Alm2XrayConverter.getProjectInfo();
         System.out.println(projectInfo.getName() + " " + projectInfo.getVersion());
+    }
+
+    private static void queryAlm(String projectName, String userInfoString)
+    {
+        UserCredentials credentials = getUserCredentials(userInfoString);
+        try
+        {
+            // FIXME
+        }
+        finally
+        {
+            credentials.clear();
+        }
+    }
+
+    private static Config readConfiguration()
+    throws IOException
+    {
+        Path basePath = Alm2XrayConverter.getProjectInfo().getBasePath();
+        Path configFilePath = basePath.resolve("config").resolve("config.properties");
+        return new Config(PropertyUtils.loadPropertyMap(configFilePath));
+    }
+
+    private static void verifyAlmProjectAccess(String projectName, String userInfoString)
+    {
+        UserCredentials credentials = getUserCredentials(userInfoString);
+        try
+        {
+            // FIXME
+            System.out.println("<" + new String(credentials.getUsername()) + ">");
+            System.out.println("<" + new String(credentials.getPassword()) + ">");
+        }
+        finally
+        {
+            credentials.clear();
+        }
+    }
+
+    private static void verifyMutuallyExclusiveOptions(CommandLine cli, List<String> optList)
+    {
+        int optCount = 0;
+        for (String opt : optList)
+        {
+            if (cli.hasOption(opt))
+            {
+                optCount++;
+            }
+        }
+        if (optCount > 1)
+        {
+            throw new IllegalArgumentException("Too many options specified.");
+        }
+    }
+
+    private static void verifyOptionValueCount(CommandLine cli)
+    {
+        for (Option option : cli.getOptions())
+        {
+            if (cli.hasOption(option) && option.hasArg())
+            {
+                if (cli.getOptionValues(option).length > 1)
+                {
+                    String opt     = option.getOpt();
+                    String longOpt = option.getLongOpt();
+                    List<String> list = new ArrayList<>();
+                    if (opt != null)
+                    {
+                        list.add("-" + opt);
+                    }
+                    if (longOpt != null)
+                    {
+                        list.add("--" + longOpt);
+                    }
+                    String msg = String.format(
+                            "Too many arguments for option (%s).", String.join(",", list));
+                    throw new IllegalArgumentException(msg);
+                }
+            }
+        }
     }
 }
