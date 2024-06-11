@@ -311,18 +311,13 @@ public class Alm2Xray
 
     private static void queryAlm(String projectName, String userInfoString)
     {
-        UserCredentials credentials = getUserCredentials(userInfoString);
-        try
+        try (UserCredentials credentials = getUserCredentials(userInfoString))
         {
             // FIXME
         }
-        finally
-        {
-            credentials.clear();
-        }
     }
 
-    private static Config readConfiguration()
+    private static Config readConfig()
     throws IOException
     {
         Path basePath = Alm2XrayConverter.getProjectInfo().getBasePath();
@@ -332,16 +327,11 @@ public class Alm2Xray
 
     private static void verifyAlmProjectAccess(String projectName, String userInfoString)
     {
-        UserCredentials credentials = getUserCredentials(userInfoString);
-        try
+        try (UserCredentials credentials = getUserCredentials(userInfoString))
         {
             // FIXME
             System.out.println("<" + new String(credentials.getUsername()) + ">");
             System.out.println("<" + new String(credentials.getPassword()) + ">");
-        }
-        finally
-        {
-            credentials.clear();
         }
     }
 
