@@ -3,6 +3,7 @@ package ca.bc.gov.health.qa.alm2xray;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
@@ -15,8 +16,14 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
+import ca.bc.gov.health.qa.autotest.core.util.capture.Artifact;
+import ca.bc.gov.health.qa.autotest.core.util.capture.CaptureEvent;
+import ca.bc.gov.health.qa.autotest.core.util.capture.ThrowableArtifact;
 import ca.bc.gov.health.qa.autotest.core.util.config.Config;
+import ca.bc.gov.health.qa.autotest.core.util.context.LocalContext;
 import ca.bc.gov.health.qa.autotest.core.util.io.ProjectInfo;
 import ca.bc.gov.health.qa.autotest.core.util.io.PropertyUtils;
 import ca.bc.gov.health.qa.autotest.core.util.security.ArraySupport;
@@ -28,6 +35,18 @@ import ca.bc.gov.health.qa.autotest.core.util.security.UserCredentials;
  */
 public class Alm2Xray
 {
+    private static enum Command
+    {
+        CONVERT,
+        HELP,
+        QUERY,
+        VERIFY_ACCESS,
+        VERSION;
+    }
+
+    private static final Path   EVENT_PATH = Path.of("events");
+    private static final Logger LOG        = LogManager.getLogger();
+
     /**
      * TODO (AZ) - doc
      *
@@ -43,59 +62,118 @@ public class Alm2Xray
     public static void main(String[] args)
     throws IOException
     {
-        Options     options = createCommandLineOptions();
-        CommandLine cli;
         try
         {
-            cli = new DefaultParser().parse(options, args);
-            if (!cli.getArgList().isEmpty())
+            Command command        = null;
+            boolean forceOverwrite = false;
+            Path    inputPath      = null;
+            Path    outputPath     = null;
+            String  projectName    = null;
+            String  userInfo       = null;
+
+            Options options = createCommandLineOptions();
+            try
             {
-                throw new IllegalArgumentException("Too many arguments.");
+                CommandLine cli = new DefaultParser().parse(options, args);
+                if (!cli.getArgList().isEmpty())
+                {
+                    throw new IllegalArgumentException("Too many arguments.");
+                }
+                verifyMutuallyExclusiveOptions(cli, List.of("a", "c", "h", "q", "v"));
+                verifyOptionValueCount(cli);
+                if (cli.hasOption("a"))
+                {
+                    command     = Command.VERIFY_ACCESS;
+                    projectName = getRequiredOptionValue("p", cli, options);
+                    userInfo    = cli.getOptionValue("u");
+                }
+                else if (cli.hasOption("c"))
+                {
+                    command        = Command.CONVERT;
+                    forceOverwrite = cli.hasOption("f");
+                    inputPath      = getRequiredOptionPath("i", cli, options);
+                    outputPath     = getRequiredOptionPath("o", cli, options);
+                }
+                else if (cli.hasOption("h"))
+                {
+                    command = Command.HELP;
+                }
+                else if (cli.hasOption("q"))
+                {
+                    command     = Command.QUERY;
+                    projectName = getRequiredOptionValue("p", cli, options);
+                    userInfo    = cli.getOptionValue("u");
+                }
+                else if (cli.hasOption("v"))
+                {
+                    command = Command.VERSION;
+                }
+                else
+                {
+                    throw new IllegalArgumentException("Missing required argument(s).");
+                }
             }
-            verifyMutuallyExclusiveOptions(cli, List.of("a", "c", "h", "q", "v"));
-            verifyOptionValueCount(cli);
-            if (cli.hasOption("a"))
+            catch (IllegalArgumentException | ParseException e)
             {
-                String userInfoString = cli.getOptionValue("u");
-                String projectName    = getOptionValue("p", cli, options);
-                verifyAlmProjectAccess(projectName, userInfoString);
+                exitWithError(e.getMessage(), options);
+                throw new IllegalStateException("Exit with error failed.", e);
             }
-            else if (cli.hasOption("c"))
+
+            switch (command)
             {
-                Path    inputPath      = getOptionPath("i", cli, options);
-                Path    outputPath     = getOptionPath("o", cli, options);
-                boolean forceOverwrite = cli.hasOption("f");
-                convert(inputPath, outputPath, forceOverwrite);
-            }
-            else if (cli.hasOption("h"))
-            {
-                printHelpInfo(options, false);
-            }
-            else if (cli.hasOption("q"))
-            {
-                String userInfoString = cli.getOptionValue("u");
-                String projectName    = getOptionValue("p", cli, options);
-                queryAlm(projectName, userInfoString);
-            }
-            else if (cli.hasOption("v"))
-            {
-                printVersionInfo();
-            }
-            else
-            {
-                throw new IllegalArgumentException("Missing required argument(s).");
+                case CONVERT:
+                    convert(inputPath, outputPath, forceOverwrite);
+                    break;
+
+                case HELP:
+                    printHelpInfo(options, false);
+                    break;
+
+                case QUERY:
+                    queryAlm(projectName, userInfo);
+                    break;
+
+                case VERIFY_ACCESS:
+                    verifyAlmProjectAccess(projectName, userInfo);
+                    break;
+
+                case VERSION:
+                    printVersionInfo();
+                    break;
+
+                default:
+                    String msg = String.format("Unknown command (%s).", command);
+                    throw new IllegalStateException(msg);
             }
         }
-        catch (IllegalArgumentException | ParseException e)
+        catch (Throwable t)
         {
-            String msg = e.getMessage();
-            exitWithError(msg, options);
-            throw new IllegalStateException(msg);
+            LOG.error("ERROR", t); // FIXME - improve error message
+            createFailureCaptureEvent(t);
+            throw t;
         }
     }
 
     private Alm2Xray()
     {}
+
+    private static void createFailureCaptureEvent(Throwable throwable)
+    {
+        try
+        {
+            CaptureEvent captureEvent =
+                    CaptureEvent.createCaptureEvent(EVENT_PATH, "failure", null);
+            captureEvent.addSequentialArtifacts(
+                    LocalContext.get().getArtifactBuffer().getArtifactList());
+            captureEvent.addSummaryArtifact(new ThrowableArtifact("throwable.txt", throwable));
+            captureEvent.renderArtifacts();
+            LOG.error("Failure event captured ({}).", captureEvent.getPath());
+        }
+        catch (IOException e)
+        {
+            throw new IllegalStateException("Unable to capture failure event.", e);
+        }
+    }
 
     private static void convert(Path inputPath, Path outputPath, boolean forceOverwrite)
     throws IOException
@@ -200,12 +278,12 @@ public class Alm2Xray
         return description;
     }
 
-    private static Path getOptionPath(String opt, CommandLine cli, Options options)
+    private static Path getRequiredOptionPath(String opt, CommandLine cli, Options options)
     {
         Path path;
         try
         {
-            path = Path.of(getOptionValue(opt, cli, options));
+            path = Path.of(getRequiredOptionValue(opt, cli, options));
         }
         catch (InvalidPathException e)
         {
@@ -216,7 +294,7 @@ public class Alm2Xray
         return path;
     }
 
-    private static String getOptionValue(String opt, CommandLine cli, Options options)
+    private static String getRequiredOptionValue(String opt, CommandLine cli, Options options)
     {
         String value = cli.getOptionValue(opt);
         if (value == null)
@@ -227,17 +305,17 @@ public class Alm2Xray
         return value;
     }
 
-    private static UserCredentials getUserCredentials(String userInfoString)
+    private static UserCredentials getUserCredentials(String userInfo)
     {
         UserCredentials credentials;
-        char[] userInfo = ArraySupport.getCharArray(userInfoString);
+        char[] userInfoArray = ArraySupport.getCharArray(userInfo);
         try
         {
-            credentials = CredentialUtils.getUserCredentials(userInfo, "ALM");
+            credentials = CredentialUtils.getUserCredentials(userInfoArray, "ALM");
         }
         finally
         {
-            ArraySupport.clear(userInfo);
+            ArraySupport.clear(userInfoArray);
         }
         return credentials;
     }
@@ -310,10 +388,17 @@ public class Alm2Xray
     }
 
     private static void queryAlm(String projectName, String userInfoString)
+    throws IOException
     {
+        Config config = readConfig();
+        URI    uri    = URI.create(config.get("alm.url"));
+        String domain = config.get("alm.domain");
+        Alm2XrayConverter converter = new Alm2XrayConverter(uri);
         try (UserCredentials credentials = getUserCredentials(userInfoString))
         {
             // FIXME
+            System.out.println("<" + new String(credentials.getUsername()) + ">");
+            System.out.println("<" + new String(credentials.getPassword()) + ">");
         }
     }
 
@@ -326,12 +411,15 @@ public class Alm2Xray
     }
 
     private static void verifyAlmProjectAccess(String projectName, String userInfoString)
+    throws IOException
     {
+        Config config     = readConfig();
+        URI    uri        = URI.create(config.get("alm.url"));
+        String domainName = config.get("alm.domain");
+        Alm2XrayConverter converter = new Alm2XrayConverter(uri);
         try (UserCredentials credentials = getUserCredentials(userInfoString))
         {
-            // FIXME
-            System.out.println("<" + new String(credentials.getUsername()) + ">");
-            System.out.println("<" + new String(credentials.getPassword()) + ">");
+            converter.verifyAlmProjectAccess(domainName, projectName, credentials);
         }
     }
 

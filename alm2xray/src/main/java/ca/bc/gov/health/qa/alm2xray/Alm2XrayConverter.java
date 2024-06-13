@@ -1,6 +1,7 @@
 package ca.bc.gov.health.qa.alm2xray;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -11,6 +12,7 @@ import ca.bc.gov.health.qa.alm2xray.test.TestStep;
 import ca.bc.gov.health.qa.autotest.core.util.data.CsvUtils;
 import ca.bc.gov.health.qa.autotest.core.util.data.TableUtils;
 import ca.bc.gov.health.qa.autotest.core.util.io.ProjectInfo;
+import ca.bc.gov.health.qa.autotest.core.util.security.UserCredentials;
 
 /**
  * TODO (AZ) - doc
@@ -20,11 +22,33 @@ public class Alm2XrayConverter
     private static final ProjectInfo PROJECT_INFO =
             ProjectInfo.create(Alm2XrayConverter.class, "maven-project.properties");
 
+    private final AlmRestClient almRestClient_;
+
     /**
      * TODO (AZ) - doc
      */
     public Alm2XrayConverter()
-    {}
+    {
+        this(null);
+    }
+
+    /**
+     * TODO (AZ) - doc
+     *
+     * @param uri
+     *        ???
+     */
+    public Alm2XrayConverter(URI uri)
+    {
+        if (uri != null)
+        {
+            almRestClient_ = new AlmRestClient(uri);
+        }
+        else
+        {
+            almRestClient_ = null;
+        }
+    }
 
     /**
      * TODO (AZ) - doc
@@ -82,7 +106,7 @@ public class Alm2XrayConverter
     public void output(Path outputPath, boolean forceOverwrite)
     throws IOException
     {
-        // FIXME
+        // FIXME - POC
         List<TestCase> testCaseList = new ArrayList<>();
         testCaseList.add(TestCase
                 .builder()
@@ -106,5 +130,30 @@ public class Alm2XrayConverter
                 .step("Foo 3.3", "Bar 3.3")
                 .build());
         CsvUtils.writeCsvFile(convertToXray(testCaseList), outputPath, forceOverwrite);
+    }
+
+    /**
+     * TODO (AZ) - doc
+     *
+     * @param domainName
+     *        ???
+     *
+     * @param projectName
+     *        ???
+     *
+     * @param credentials
+     *        ???
+     *
+     * @throws IOException
+     *         if an I/O error occurs
+     */
+    public void verifyAlmProjectAccess(
+            String domainName, String projectName, UserCredentials credentials)
+    throws IOException
+    {
+        // FIXME
+        almRestClient_.login(credentials);
+        
+        
     }
 }

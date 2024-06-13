@@ -31,70 +31,156 @@ implements AutoCloseable
     /**
      * Returns a new character array, containing a copy of the password.
      * <p>
-     * TODO (AZ) - it is highly recommended to securely clear the returned array,
-     *             as well as this user credentials, as soon as possible
+     * This method clears the password of this user credentials.
+     * To prevent this from happening use the
+     * {@link #getPassword(boolean)} method instead.
      *
      * @return a new character array, containing a copy of the password,
      *         or {@code null} if the password is not set
      *
-     * @see ArraySupport#clear(char[])
+     * @see #getPassword(boolean)
      */
     public char[] getPassword()
     {
-        return ArraySupport.copy(password_);
+        return getPassword(true);
+    }
+
+    /**
+     * TODO (AZ) - doc
+     *
+     * @param clearSource
+     *        ???
+     *
+     * @return ???
+     *
+     * @see #getPassword()
+     */
+    public char[] getPassword(boolean clearSource)
+    {
+        char[] password = ArraySupport.copy(password_);
+        if (clearSource)
+        {
+            setPassword(null);
+        }
+        return password;
     }
 
     /**
      * Returns a new character array, containing a copy of the username.
      * <p>
-     * TODO (AZ) - it is highly recommended to securely clear the returned array,
-     *             as well as this user credentials, as soon as possible
+     * This method clears the username of this user credentials.
+     * To prevent this from happening use the
+     * {@link #getUsername(boolean)} method instead.
      *
      * @return a new character array, containing a copy of the username,
      *         or {@code null} if the username is not set
      *
-     * @see ArraySupport#clear(char[])
+     * @see #getUsername(boolean)
      */
     public char[] getUsername()
     {
-        return ArraySupport.copy(username_);
+        return getUsername(true);
+    }
+
+    /**
+     * TODO (AZ) - doc
+     *
+     * @param clearSource
+     *        ???
+     *
+     * @return ???
+     *
+     * @see #getUsername()
+     */
+    public char[] getUsername(boolean clearSource)
+    {
+        char[] username = ArraySupport.copy(username_);
+        if (clearSource)
+        {
+            setUsername(null);
+        }
+        return username;
     }
 
     /**
      * TODO (AZ) - doc
      * TODO (AZ) - secure clear previous value, if any
      * <p>
-     * This method stores a copy of the input parameter supplied.
-     * It is highly recommended to securely clear the input parameter
-     * after calling this method.
+     * This method stores a copy of the input array supplied.
+     * <p>
+     * This method clears the input array supplied.
+     * To prevent this from happening use the
+     * {@link #setPassword(char[], boolean)} method instead.
      *
      * @param password
      *        ???
      *
-     * @see ArraySupport#clear(char[])
+     * @see #setPassword(char[], boolean)
      */
     public void setPassword(char[] password)
     {
+        setPassword(password, true);
+    }
+
+    /**
+     * TODO (AZ) - doc
+     *
+     * @param password
+     *        ???
+     *
+     * @param clearSource
+     *        ???
+     *
+     * @see #setPassword(char[])
+     */
+    public void setPassword(char[] password, boolean clearSource)
+    {
         ArraySupport.clear(password_);
         password_ = ArraySupport.copy(password);
+        if (clearSource)
+        {
+            ArraySupport.clear(password);
+        }
     }
 
     /**
      * TODO (AZ) - doc
      * TODO (AZ) - secure clear previous value, if any
      * <p>
-     * This method stores a copy of the input parameter supplied.
-     * It is highly recommended to securely clear the input parameter
-     * after calling this method.
+     * This method stores a copy of the input array supplied.
+     * <p>
+     * This method clears the input array supplied.
+     * To prevent this from happening use the
+     * {@link #setUsername(char[], boolean)} method instead.
      *
      * @param username
      *        ???
      *
-     * @see ArraySupport#clear(char[])
+     * @see #setUsername(char[], boolean)
      */
     public void setUsername(char[] username)
     {
+        setUsername(username, true);
+    }
+
+    /**
+     * TODO (AZ) - doc
+     *
+     * @param username
+     *        ???
+     *
+     * @param clearSource
+     *        ???
+     *
+     * @see #setUsername(char[])
+     */
+    public void setUsername(char[] username, boolean clearSource)
+    {
         ArraySupport.clear(username_);
         username_ = ArraySupport.copy(username);
+        if (clearSource)
+        {
+            ArraySupport.clear(username);
+        }
     }
 }

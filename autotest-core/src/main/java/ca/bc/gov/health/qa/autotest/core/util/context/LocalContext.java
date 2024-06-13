@@ -3,7 +3,6 @@ package ca.bc.gov.health.qa.autotest.core.util.context;
 import ca.bc.gov.health.qa.autotest.core.util.capture.Artifact;
 import ca.bc.gov.health.qa.autotest.core.util.capture.ArtifactBuffer;
 import ca.bc.gov.health.qa.autotest.core.util.config.Config;
-import ca.bc.gov.health.qa.autotest.core.util.config.ConfigProvider;
 
 /**
  * TODO (AZ) - doc
@@ -17,7 +16,8 @@ public class LocalContext
             ThreadLocal.withInitial(() -> new LocalContext());
 
     private final ArtifactBuffer artifactBuffer_;
-    private final Config         config_;
+
+    private Config config_;
 
     /**
      * Creates a new local context.
@@ -25,7 +25,6 @@ public class LocalContext
     private LocalContext()
     {
         artifactBuffer_ = new ArtifactBuffer();
-        config_         = ConfigProvider.get().getConfig();
     }
 
     /**
@@ -75,5 +74,16 @@ public class LocalContext
     public Config getConfig()
     {
         return config_;
+    }
+
+    /**
+     * TODO (AZ) - doc
+     *
+     * @param config
+     *        ???
+     */
+    public void setConfig(Config config)
+    {
+        config_ = config;
     }
 }
