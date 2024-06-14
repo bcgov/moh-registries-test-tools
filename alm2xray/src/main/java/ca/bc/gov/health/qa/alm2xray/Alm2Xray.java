@@ -19,7 +19,6 @@ import org.apache.commons.cli.ParseException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import ca.bc.gov.health.qa.autotest.core.util.capture.Artifact;
 import ca.bc.gov.health.qa.autotest.core.util.capture.CaptureEvent;
 import ca.bc.gov.health.qa.autotest.core.util.capture.ThrowableArtifact;
 import ca.bc.gov.health.qa.autotest.core.util.config.Config;
@@ -157,24 +156,6 @@ public class Alm2Xray
     private Alm2Xray()
     {}
 
-    private static void createFailureCaptureEvent(Throwable throwable)
-    {
-        try
-        {
-            CaptureEvent captureEvent =
-                    CaptureEvent.createCaptureEvent(EVENT_PATH, "failure", null);
-            captureEvent.addSequentialArtifacts(
-                    LocalContext.get().getArtifactBuffer().getArtifactList());
-            captureEvent.addSummaryArtifact(new ThrowableArtifact("throwable.txt", throwable));
-            captureEvent.renderArtifacts();
-            LOG.error("Failure event captured ({}).", captureEvent.getPath());
-        }
-        catch (IOException e)
-        {
-            throw new IllegalStateException("Unable to capture failure event.", e);
-        }
-    }
-
     private static void convert(Path inputPath, Path outputPath, boolean forceOverwrite)
     throws IOException
     {
@@ -252,6 +233,24 @@ public class Alm2Xray
                         .desc("shows version information")
                         .build());
         return options;
+    }
+
+    private static void createFailureCaptureEvent(Throwable throwable)
+    {
+        try
+        {
+            CaptureEvent captureEvent =
+                    CaptureEvent.createCaptureEvent(EVENT_PATH, "failure", null);
+            captureEvent.addSequentialArtifacts(
+                    LocalContext.get().getArtifactBuffer().getArtifactList());
+            captureEvent.addSummaryArtifact(new ThrowableArtifact("throwable.txt", throwable));
+            captureEvent.renderArtifacts();
+            LOG.error("Failure event captured ({}).", captureEvent.getPath());
+        }
+        catch (IOException e)
+        {
+            throw new IllegalStateException("Unable to capture failure event.", e);
+        }
     }
 
     private static void exitWithError(String errorMessage, Options options)
