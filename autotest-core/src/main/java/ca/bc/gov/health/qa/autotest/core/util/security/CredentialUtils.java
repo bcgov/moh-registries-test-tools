@@ -151,6 +151,7 @@ public class CredentialUtils
                     }
                     if (user == null)
                     {
+                        System.out.println();
                         throw new IllegalStateException("Username is not specified.");
                     }
                 }
