@@ -250,7 +250,7 @@ public class Alm2Xray
                     LocalContext.get().getArtifactBuffer().getArtifactList());
             captureEvent.addSummaryArtifact(new ThrowableArtifact("throwable.txt", throwable));
             captureEvent.renderArtifacts();
-            LOG.error("Failure event captured ({}).", captureEvent.getPath());
+            LOG.error("Event captured ({}).", captureEvent.getPath());
         }
         catch (IOException e)
         {
@@ -421,9 +421,9 @@ public class Alm2Xray
         Config config     = readConfig();
         URI    uri        = URI.create(config.get("alm.url"));
         String domainName = config.get("alm.domain");
-        Alm2XrayConverter converter = new Alm2XrayConverter(uri);
         try (UserCredentials credentials = getUserCredentials(userInfoString))
         {
+            Alm2XrayConverter converter = new Alm2XrayConverter(uri);
             converter.verifyAlmProjectAccess(domainName, projectName, credentials);
         }
     }

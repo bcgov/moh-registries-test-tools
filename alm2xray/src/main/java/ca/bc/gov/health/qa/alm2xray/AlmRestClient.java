@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,6 +28,7 @@ implements AutoCloseable
 {
     private static final Logger LOG            = LogManager.getLogger();
     private static final String MASK_INDICATOR = "*".repeat(8);
+    private static final String SET_COOKIE_KEY = "set-cookie";
 
     private final SimpleHttpClient client_;
     private final URI              uri_;
@@ -74,6 +76,7 @@ implements AutoCloseable
     throws InterruptedException,
            IOException
     {
+        LOG.info("Logging in ({}) ...", new String(credentials.getUsername(false)));
         String postBody = getLoginRequestPayload(credentials);
         credentials.setPassword(MASK_INDICATOR.toCharArray());
         String maskedBody = getLoginRequestPayload(credentials);
@@ -85,30 +88,23 @@ implements AutoCloseable
                 .body(postBody, maskedBody)
                 .build();
         SimpleHttpResponse response = client_.send(request, true, false);
-        SimpleHttpClient.generateResponseArtifacts(createAlteredHttpResponse(response), false);
+        SimpleHttpClient.generateResponseArtifacts(
+                response.maskResponseHeaders(Set.of(SET_COOKIE_KEY)), false);
+        if (response.getStatusCode() == 200)
+        {
+            // FIXME
+        }
+        else
+        {
+            throw new IllegalStateException("ALM login failed.");
+        }
         
-        System.out.println(request.getUri());
         
-        System.out.println("LOGIN: " + postBody); // FIXME
-        System.out.println("       " + maskedBody); // FIXME
+        
+
         
         // FIXME
         return null;
-    }
-
-    private static SimpleHttpResponse createAlteredHttpResponse(SimpleHttpResponse response)
-    {
-        Map<String,List<String>> maskedHeaderMap = new HashMap<>(response.getResponseHeaderMap());
-        maskedHeaderMap.put("set-cookie", List.of(MASK_INDICATOR));
-        return new SimpleHttpResponse(
-                response.getUri(),
-                response.getStatusCode(),
-                response.getHttpVersion(),
-                Collections.unmodifiableMap(maskedHeaderMap),
-                response.getResponseType(),
-                new byte[0],
-                response.getTextResponseBody(),
-                response.getTransactionTiming());
     }
 
     private static String getLoginRequestPayload(UserCredentials credentials)

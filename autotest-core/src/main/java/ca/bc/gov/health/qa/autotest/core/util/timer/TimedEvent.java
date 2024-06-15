@@ -10,9 +10,10 @@ import ca.bc.gov.health.qa.autotest.core.util.event.NamedEvent;
 /**
  * TODO (AZ) - doc
  *
- * <p>TODO (AZ) - add a note that duration may not be equal to the difference (endTime - time).
- *
- * <p>Instances of this class are immutable and safe for use by multiple concurrent threads.
+ * <p>
+ * TODO (AZ) - add a note that duration may not be equal to the difference (endTime - time).
+ * <p>
+ * Instances of this class are immutable and safe for use by multiple concurrent threads.
  */
 public final class TimedEvent
 implements NamedEvent

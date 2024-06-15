@@ -10,7 +10,8 @@ public class MediaTypeUtils
 {
     private static final Map<String,String> MEDIA_TYPE_EXTENSION_MAP = Map.ofEntries(
             Map.entry("application/json",      ".json"),
-            Map.entry("application/fhir+json", ".json"));
+            Map.entry("application/fhir+json", ".json"),
+            Map.entry("text/html",             ".html"));
 
     private MediaTypeUtils()
     {}

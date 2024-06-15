@@ -91,7 +91,8 @@
         <configuration>
           <release>21</release>
           <compilerArgs>
-            <arg>-Xlint:all,-processing,-requires-automatic,-requires-transitive-automatic</arg>
+            <arg>-proc:none</arg>
+            <arg>-Xlint:all</arg>
           </compilerArgs>
           <showWarnings>true</showWarnings>
           <showDeprecation>true</showDeprecation>

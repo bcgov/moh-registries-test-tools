@@ -214,7 +214,7 @@ implements IClassListener, IConfigurationListener, IExecutionListener, ITestList
                 }
             }
             artifactEvent.renderArtifacts();
-            LOG.error("Failure event captured ({}).", artifactEvent.getPath());
+            LOG.error("Event captured ({}).", artifactEvent.getPath());
         }
         catch (IOException e)
         {

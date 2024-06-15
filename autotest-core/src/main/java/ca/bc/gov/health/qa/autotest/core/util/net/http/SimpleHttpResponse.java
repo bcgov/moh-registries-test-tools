@@ -4,8 +4,11 @@ import static java.util.Objects.requireNonNull;
 
 import java.net.URI;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import ca.bc.gov.health.qa.autotest.core.util.timer.TimedEvent;
 
@@ -14,6 +17,8 @@ import ca.bc.gov.health.qa.autotest.core.util.timer.TimedEvent;
  */
 public class SimpleHttpResponse
 {
+    private static final String DEFAULT_MASK_INDICATOR = "*".repeat(8);
+
     private final byte[]                   binaryResponseBody_;
     private final String                   httpVersion_;
     private final Map<String,List<String>> responseHeaderMap_;
@@ -153,5 +158,50 @@ public class SimpleHttpResponse
     public URI getUri()
     {
         return uri_;
+    }
+
+    /**
+     * TODO (AZ) - doc - returns a copy of the simple HTTP response ...
+     *
+     * @param headerNameSet
+     *        ???
+     *
+     * @return ???
+     */
+    public SimpleHttpResponse maskResponseHeaders(Set<String> headerNameSet)
+    {
+        return maskResponseHeaders(headerNameSet, DEFAULT_MASK_INDICATOR);
+    }
+
+    /**
+     * TODO (AZ) - doc - returns a copy of the simple HTTP response ...
+     *
+     * @param headerNameSet
+     *        ???
+     *
+     * @param maskIndicator
+     *        ???
+     *
+     * @return ???
+     */
+    public SimpleHttpResponse maskResponseHeaders(Set<String> headerNameSet, String maskIndicator)
+    {
+        Map<String,List<String>> maskedHeaderMap = new HashMap<>(getResponseHeaderMap());
+        for (String headerName : headerNameSet)
+        {
+            if (maskedHeaderMap.containsKey(headerName))
+            {
+                maskedHeaderMap.put(headerName, List.of(maskIndicator));
+            }
+        }
+        return new SimpleHttpResponse(
+                getUri(),
+                getStatusCode(),
+                getHttpVersion(),
+                Collections.unmodifiableMap(maskedHeaderMap),
+                getResponseType(),
+                getBinaryResponseBody(),
+                getTextResponseBody(),
+                getTransactionTiming());
     }
 }

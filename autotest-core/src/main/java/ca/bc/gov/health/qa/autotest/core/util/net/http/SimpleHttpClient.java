@@ -24,9 +24,6 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509ExtendedTrustManager;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import ca.bc.gov.health.qa.autotest.core.util.capture.BinaryArtifact;
 import ca.bc.gov.health.qa.autotest.core.util.capture.TextArtifact;
 import ca.bc.gov.health.qa.autotest.core.util.context.LocalContext;
@@ -40,8 +37,6 @@ import ca.bc.gov.health.qa.autotest.core.util.timer.TimedEvent;
 public class SimpleHttpClient
 implements AutoCloseable
 {
-    private static final Logger LOG = LogManager.getLogger();
-
     private HttpClient client_;
 
     /**
@@ -447,7 +442,6 @@ implements AutoCloseable
         String extension = MediaTypeUtils.getExtensionForMediaType(contentType);
         if (extension == null)
         {
-            LOG.warn("File extension not found for content type ({}).", contentType);
             if (response.getResponseType() == HttpResponseType.TEXT)
             {
                 extension = ".txt";

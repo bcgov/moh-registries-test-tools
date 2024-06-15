@@ -86,6 +86,7 @@
         <configuration>
           <release>21</release>
           <compilerArgs>
+            <arg>-proc:none</arg>
             <arg>-Xlint:all</arg>
           </compilerArgs>
           <showWarnings>true</showWarnings>
