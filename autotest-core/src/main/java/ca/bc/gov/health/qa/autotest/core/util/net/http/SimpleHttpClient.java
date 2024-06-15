@@ -80,7 +80,7 @@ implements AutoCloseable
      * TODO (AZ) - doc the parameters
      */
     public SimpleHttpClient(
-            boolean enableCertificateValidation, Path keyStorePath, String keyStorePassword)
+            boolean enableCertificateValidation, Path keyStorePath, char[] keyStorePassword)
     {
         SSLContext sslContext =
                 createSSLContext(enableCertificateValidation, keyStorePath, keyStorePassword);
@@ -357,7 +357,7 @@ implements AutoCloseable
      * @return ???
      */
     private static SSLContext createSSLContext(
-            boolean enableCertificateValidation, Path keyStorePath, String keyStorePassword)
+            boolean enableCertificateValidation, Path keyStorePath, char[] keyStorePassword)
     {
         SSLContext sslContext;
         try
@@ -382,7 +382,7 @@ implements AutoCloseable
                 KeyStore keyStore = loadKeyStore(keyStorePath, keyStorePassword);
                 KeyManagerFactory keyManagerFactory =
                         KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-                keyManagerFactory.init(keyStore, keyStorePassword.toCharArray());
+                keyManagerFactory.init(keyStore, keyStorePassword);
                 keyManagers = keyManagerFactory.getKeyManagers();
             }
 
@@ -410,7 +410,7 @@ implements AutoCloseable
      * @throws IOException
      *         if an I/O error occurs
      */
-    private static KeyStore loadKeyStore(Path path, String password)
+    private static KeyStore loadKeyStore(Path path, char[] password)
     throws IOException
     {
         requireNonNull(path,     "Null key store path.");
@@ -419,7 +419,7 @@ implements AutoCloseable
         try (FileInputStream fis = new FileInputStream(path.toFile()))
         {
             keyStore = KeyStore.getInstance("PKCS12");
-            keyStore.load(fis, password.toCharArray());
+            keyStore.load(fis, password);
         }
         catch (GeneralSecurityException e)
         {

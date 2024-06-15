@@ -19,7 +19,7 @@ extends TextArtifact
     private static final String EVENT_TIME_PATTERN = "yyyy-MM-dd HH:mm:ss.SSS z";
     private static final String SECTION_SEPARATOR  = "-".repeat(80) + "\n";
 
-    private final boolean            isResponseBodyOriginal_;
+    private final boolean            isResponseOriginal_;
     private final SimpleHttpResponse response_;
 
     /**
@@ -31,7 +31,7 @@ extends TextArtifact
      * @param response
      *        ???
      *
-     * @param isResponseBodyOriginal
+     * @param isResponseOriginal
      *        ???
      *
      * @throws NullPointerException
@@ -40,11 +40,11 @@ extends TextArtifact
     public SimpleHttpResponseArtifact(
             String             name,
             SimpleHttpResponse response,
-            boolean            isResponseBodyOriginal)
+            boolean            isResponseOriginal)
     {
         super(name, null, null, response.getTransactionTiming().getEndTime());
-        isResponseBodyOriginal_ = isResponseBodyOriginal;
-        response_               = response;
+        isResponseOriginal_ = isResponseOriginal;
+        response_           = response;
     }
 
     @Override
@@ -68,9 +68,9 @@ extends TextArtifact
                 break;
 
             case TEXT:
-                if (!isResponseBodyOriginal_)
+                if (!isResponseOriginal_)
                 {
-                    note = "An altered version of the response content is included.";
+                    note = "An altered version of the response is included.";
                 }
                 responseContent = response_.getTextResponseBody();
                 break;

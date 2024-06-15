@@ -55,11 +55,15 @@ public class Alm2Xray
      * @throws IllegalStateException
      *         ???
      *
+     * @throws InterruptedException
+     *         if the current thread is interrupted
+     *
      * @throws IOException
      *         if an I/O error occurs
      */
     public static void main(String[] args)
-    throws IOException
+    throws InterruptedException,
+           IOException
     {
         try
         {
@@ -144,6 +148,7 @@ public class Alm2Xray
                     String msg = String.format("Unknown command (%s).", command);
                     throw new IllegalStateException(msg);
             }
+            throw new IllegalStateException(">>> DONE <<<"); // FIXME
         }
         catch (Throwable t)
         {
@@ -410,7 +415,8 @@ public class Alm2Xray
     }
 
     private static void verifyAlmProjectAccess(String projectName, String userInfoString)
-    throws IOException
+    throws InterruptedException,
+           IOException
     {
         Config config     = readConfig();
         URI    uri        = URI.create(config.get("alm.url"));

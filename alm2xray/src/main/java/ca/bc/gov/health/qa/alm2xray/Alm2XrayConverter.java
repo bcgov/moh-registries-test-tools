@@ -144,12 +144,16 @@ public class Alm2XrayConverter
      * @param credentials
      *        ???
      *
+     * @throws InterruptedException
+     *         if the current thread is interrupted
+     *
      * @throws IOException
      *         if an I/O error occurs
      */
     public void verifyAlmProjectAccess(
             String domainName, String projectName, UserCredentials credentials)
-    throws IOException
+    throws InterruptedException,
+           IOException
     {
         // FIXME
         almRestClient_.login(credentials);
