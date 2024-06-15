@@ -218,7 +218,7 @@ implements IClassListener, IConfigurationListener, IExecutionListener, ITestList
         }
         catch (IOException e)
         {
-            throw new IllegalStateException("Unable to capture failure event.", e);
+            throw new IllegalStateException("Unable to capture event.", e);
         }
     }
 

@@ -7,6 +7,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import ca.bc.gov.health.qa.alm2xray.test.TestCase;
 import ca.bc.gov.health.qa.alm2xray.test.TestStep;
 import ca.bc.gov.health.qa.autotest.core.util.data.CsvUtils;
@@ -19,6 +22,8 @@ import ca.bc.gov.health.qa.autotest.core.util.security.UserCredentials;
  */
 public class Alm2XrayConverter
 {
+    private static final Logger LOG = LogManager.getLogger();
+
     private static final ProjectInfo PROJECT_INFO =
             ProjectInfo.create(Alm2XrayConverter.class, "maven-project.properties");
 
@@ -40,6 +45,7 @@ public class Alm2XrayConverter
      */
     public Alm2XrayConverter(URI uri)
     {
+        LOG.info("{} {}", PROJECT_INFO.getName(), PROJECT_INFO.getVersion());
         if (uri != null)
         {
             almRestClient_ = new AlmRestClient(uri);

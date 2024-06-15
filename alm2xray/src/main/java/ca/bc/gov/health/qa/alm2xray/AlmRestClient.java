@@ -43,7 +43,7 @@ implements AutoCloseable
     {
         uri_    = requireNonNull(uri, "Null URI.");
         client_ = new SimpleHttpClient();
-        LOG.info("URL ({}).", uri_);
+        LOG.info("ALM URL ({}).", uri_);
     }
 
     /**
@@ -84,21 +84,26 @@ implements AutoCloseable
                 .transactionName("Login")
                 .uri(uri_.resolve("authentication-point/alm-authenticate"))
                 .methodPost()
+                .header("Accept", "application/json")
                 .header("Content-Type", "application/json")
                 .body(postBody, maskedBody)
                 .build();
         SimpleHttpResponse response = client_.send(request, true, false);
         SimpleHttpClient.generateResponseArtifacts(
                 response.maskResponseHeaders(Set.of(SET_COOKIE_KEY)), false);
-        if (response.getStatusCode() == 200)
+        int statusCode = response.getStatusCode();
+        if (statusCode == 200)
         {
             // FIXME
         }
-        else
+        else if (statusCode == 401)
         {
             throw new IllegalStateException("ALM login failed.");
         }
-        
+        else
+        {
+            throw new IllegalStateException("Failed connecting to ALM.");
+        }
         
         
 

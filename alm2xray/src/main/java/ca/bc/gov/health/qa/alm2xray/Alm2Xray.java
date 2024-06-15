@@ -119,7 +119,6 @@ public class Alm2Xray
             catch (IllegalArgumentException | ParseException e)
             {
                 exitWithError(e.getMessage(), options);
-                throw new IllegalStateException("Exit with error failed.", e);
             }
 
             switch (command)
@@ -152,9 +151,9 @@ public class Alm2Xray
         }
         catch (Throwable t)
         {
-            LOG.error("ERROR", t); // FIXME - improve error message
+            LOG.error("ERROR", t);
             createFailureCaptureEvent(t);
-            throw t;
+            exitWithError("ERROR: " + t.getMessage(), null);
         }
     }
 
@@ -164,8 +163,6 @@ public class Alm2Xray
     private static void convert(Path inputPath, Path outputPath, boolean forceOverwrite)
     throws IOException
     {
-        printVersionInfo();
-
         // FIXME
         System.out.printf("Converting (%s) -> (%s) ...%n", inputPath, outputPath);
 
@@ -254,7 +251,7 @@ public class Alm2Xray
         }
         catch (IOException e)
         {
-            throw new IllegalStateException("Unable to capture failure event.", e);
+            throw new IllegalStateException("Unable to capture event.", e);
         }
     }
 
@@ -262,9 +259,13 @@ public class Alm2Xray
     {
         String artifactId = Alm2XrayConverter.getProjectInfo().getArtifactId();
         System.err.println(artifactId + ": " + errorMessage);
-        System.err.println();
-        printHelpInfo(options, true);
+        if (options != null)
+        {
+            System.err.println();
+            printHelpInfo(options, true);
+        }
         System.exit(1);
+        throw new IllegalStateException("SYSTEM EXIT FAILED!");
     }
 
     private static String getOptionDescription(String opt, Options options)
@@ -394,15 +395,14 @@ public class Alm2Xray
     private static void queryAlm(String projectName, String userInfoString)
     throws IOException
     {
-        Config config = readConfig();
-        URI    uri    = URI.create(config.get("alm.url"));
-        String domain = config.get("alm.domain");
+        Config config     = readConfig();
+        URI    uri        = URI.create(config.get("alm.url"));
+        String domainName = config.get("alm.domain");
         Alm2XrayConverter converter = new Alm2XrayConverter(uri);
         try (UserCredentials credentials = getUserCredentials(userInfoString))
         {
             // FIXME
-            System.out.println("<" + new String(credentials.getUsername()) + ">");
-            System.out.println("<" + new String(credentials.getPassword()) + ">");
+            credentials.getUsername();
         }
     }
 
