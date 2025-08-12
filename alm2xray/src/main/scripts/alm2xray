@@ -1,0 +1,27 @@
+#!/bin/bash -e
+
+if (command -v readlink &> /dev/null)
+then
+    BASE_DIR=$(readlink -vm "$(dirname $(readlink -vm "$0"))/../")
+else
+    BASE_DIR=$(dirname $(dirname "$0"))
+fi
+
+MAIN_JAR_FILENAME="${pom.artifactId}"-"${pom.version}".jar
+MAIN_JAR="${BASE_DIR}/lib/${MAIN_JAR_FILENAME}"
+
+JVM=java
+if [ -n "$JAVA_HOME" ]
+then
+    JVM="$JAVA_HOME/bin/java"
+fi
+
+if [[ $(uname -s) =~ ^CYGWIN_NT ]]
+then
+    MAIN_JAR=$(cygpath -m "$MAIN_JAR")
+    JVM=$(cygpath -m "$JVM")
+fi
+
+JAVA_OPTS=''
+
+"$JVM" $JAVA_OPTS -jar "$MAIN_JAR" "$@"
